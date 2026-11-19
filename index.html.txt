@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de IA & Tokens</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 30px 15px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 720px;
+        }
+        h1 { margin-top: 0; font-size: 22px; color: #38bdf8; }
+        p.sub { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
+        label { font-weight: bold; display: block; margin-bottom: 8px; }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #f8fafc;
+            font-size: 15px;
+            resize: vertical;
+        }
+        .exemplos {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .btn-exemplo {
+            background: #334155;
+            color: #e2e8f0;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .btn-exemplo:hover { background: #475569; }
+        .btn-enviar {
+            margin-top: 15px;
+            width: 100%;
+            padding: 12px;
+            background: #0284c7;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-enviar:hover { background: #0369a1; }
+        .metricas {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .card {
+            background: #0f172a;
+            padding: 14px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+        .card span { display: block; font-size: 12px; color: #94a3b8; }
+        .card strong { font-size: 22px; color: #38bdf8; }
+        .painel {
+            margin-top: 20px;
+            background: #0f172a;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #38bdf8;
+            display: none;
+        }
+        .painel h3 { margin: 0 0 8px 0; font-size: 15px; color: #7dd3fc; }
+        .texto-box {
+            background: #1e293b;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 14px;
+            white-space: pre-wrap;
+            font-size: 14px;
+        }
+        .tokens-lista {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        .token-chip {
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #0f172a;
+            font-weight: bold;
+        }
+        .barra-fundo {
+            width: 100%;
+            height: 10px;
+            background: #334155;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .barra-fill {
+            height: 100%;
+            width: 0%;
+            background: #22c55e;
+            transition: width 0.3s, background 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🤖 Simulador de IA & Consumo de Tokens</h1>
+    <p class="sub">Digite um prompt curto ou longo para ver como a IA divide o texto em tokens e quanto cada tamanho consome.</p>
+
+    <label for="prompt">Seu Prompt para a IA:</label>
+    <textarea id="prompt" rows="4" placeholder="Ex: Explique o que é inteligência artificial..."></textarea>
+
+    <div class="exemplos">
+        <button class="btn-exemplo" onclick="usarExemplo('curto')">Testar Prompt Curto</button>
+        <button class="btn-exemplo" onclick="usarExemplo('medio')">Testar Prompt Médio</button>
+        <button class="btn-exemplo" onclick="usarExemplo('longo')">Testar Prompt Longo</button>
+    </div>
+
+    <button class="btn-enviar" onclick="simularIA()">Enviar Prompt e Calcular Tokens</button>
+
+    <div class="metricas">
+        <div class="card">
+            <span>Tokens do Prompt</span>
+            <strong id="tokensPrompt">0</strong>
+        </div>
+        <div class="card">
+            <span>Tokens da Resposta</span>
+            <strong id="tokensResposta">0</strong>
+        </div>
+        <div class="card">
+            <span>Total Consumido</span>
+            <strong id="tokensTotal">0</strong>
+        </div>
+    </div>
+
+    <div style="margin-top: 12px;">
+        <small id="nivelConsumo" style="color: #94a3b8;">Consumo: aguardando prompt...</small>
+        <div class="barra-fundo">
+            <div id="barraConsumo" class="barra-fill"></div>
+        </div>
+    </div>
+
+    <div id="resultado" class="painel">
+        <h3>📝 Prompt que você digitou:</h3>
+        <div id="promptExibido" class="texto-box"></div>
+
+        <h3>🧩 Como a IA dividiu seu prompt em tokens (<span id="qtdTokensTexto">0</span> tokens):</h3>
+        <div id="tokensVisuais" class="tokens-lista"></div>
+
+        <h3 style="margin-top: 16px;">💬 Resposta simulada da IA:</h3>
+        <div id="respostaIA" class="texto-box"></div>
+    </div>
+</div>
+
+<script>
+    const cores = ["#7dd3fc", "#86efac", "#fde047", "#fda4af", "#c4b5fd", "#fdba74"];
+
+    // Quebra o texto em pedaços parecidos com tokens reais (sílabas/blocos de ~4 caracteres + pontuação)
+    function tokenizar(texto) {
+        if (!texto.trim()) return [];
+        const partes = texto.match(/\S+\s*/g) || [];
+        const tokens = [];
+        partes.forEach(parte => {
+            for (let i = 0; i < parte.length; i += 4) {
+                tokens.push(parte.slice(i, i + 4));
+            }
+        });
+        return tokens;
+    }
+
+    function usarExemplo(tipo) {
+        const campo = document.getElementById("prompt");
+        if (tipo === "curto") {
+            campo.value = "Oi, tudo bem?";
+        } else if (tipo === "medio") {
+            campo.value = "Explique em poucas palavras como funciona a criptografia na internet.";
+        } else {
+            campo.value = "Atue como um professor de tecnologia e crie um resumo detalhado explicando o que é inteligência artificial, como funcionam os modelos de linguagem, por que prompts maiores gastam mais tokens e dê três exemplos práticos do dia a dia.";
+        }
+        simularIA();
+    }
+
+    function gerarRespostaSimulada(prompt, qtdTokens) {
+        const p = prompt.toLowerCase();
+        if (p.includes("oi") || p.includes("olá")) {
+            return "Olá! Como seu prompt foi bem curto (" + qtdTokens + " tokens), minha resposta também é rápida e econômica.";
+        }
+        if (qtdTokens <= 10) {
+            return "Resposta objetiva: Você enviou um pedido curto, consumindo poucos tokens de processamento.";
+        }
+        if (qtdTokens <= 30) {
+            return "Resposta intermediária: Analisei seu prompt de " + qtdTokens + " tokens. Como você deu mais contexto, gerei uma explicação mais completa sobre o tema solicitado.";
+        }
+        return "Resposta detalhada: Como o seu prompt foi extenso (" + qtdTokens + " tokens), o modelo precisou processar várias instruções e gerar uma resposta bem mais longa — o que aumenta significativamente o consumo total de tokens.";
+    }
+
+    function simularIA() {
+        const prompt = document.getElementById("prompt").value;
+        if (!prompt.trim()) {
+            alert("Digite um prompt primeiro!");
+            return;
+        }
+
+        const tokensEntrada = tokenizar(prompt);
+        const resposta = gerarRespostaSimulada(prompt, tokensEntrada.length);
+        const tokensSaida = tokenizar(resposta);
+        const total = tokensEntrada.length + tokensSaida.length;
+
+        // Atualiza números
+        document.getElementById("tokensPrompt").textContent = tokensEntrada.length;
+        document.getElementById("tokensResposta").textContent = tokensSaida.length;
+        document.getElementById("tokensTotal").textContent = total;
+        document.getElementById("qtdTokensTexto").textContent = tokensEntrada.length;
+
+        // Exibe o prompt digitado e a resposta
+        document.getElementById("promptExibido").textContent = prompt;
+        document.getElementById("respostaIA").textContent = resposta;
+
+        // Mostra os blocos coloridos de cada token
+        const containerTokens = document.getElementById("tokensVisuais");
+        containerTokens.innerHTML = "";
+        tokensEntrada.forEach((tk, index) => {
+            const span = document.createElement("span");
+            span.className = "token-chip";
+            span.style.background = cores[index % cores.length];
+            span.textContent = tk.replace(/ /g, "·");
+            containerTokens.appendChild(span);
+        });
+
+        // Atualiza barra de consumo
+        const barra = document.getElementById("barraConsumo");
+        const nivel = document.getElementById("nivelConsumo");
+        const porcentagem = Math.min((total / 150) * 100, 100);
+        barra.style.width = porcentagem + "%";
+
+        if (tokensEntrada.length <= 10) {
+            barra.style.background = "#22c55e";
+            nivel.textContent = "Consumo BAIXO — prompt curto economiza bastante tokens.";
+        } else if (tokensEntrada.length <= 30) {
+            barra.style.background = "#eab308";
+            nivel.textContent = "Consumo MÉDIO — prompt moderado usa quantidade intermediária de tokens.";
+        } else {
+            barra.style.background = "#ef4444";
+            nivel.textContent = "Consumo ALTO — prompt grande usa muito mais tokens na entrada e na resposta.";
+        }
+
+        document.getElementById("resultado").style.display = "block";
+    }
+</script>
+
+</body>
+</html>
